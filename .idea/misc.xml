@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/app-codes/RnDs/AndroidAppCode/newdir4/AppSup4vx/app/src/main/res/layout/activity_main.xml" value="0.264" />
+        <entry key="..\:/app-codes/Rnds-Success/android-apps/RayTempBlue-DeviceDataReadApp/AppSup4vx/app/src/main/res/layout/activity_main.xml" value="0.36666666666666664" />
+        <entry key="..\:/app-codes/projects2/VITE-B2C.wiki/android-apps/RayTempBlue-DeviceDataRead/AppSup4vx/app/src/main/res/layout/activity_main.xml" value="0.25416666666666665" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>
