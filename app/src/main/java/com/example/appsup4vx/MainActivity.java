@@ -33,12 +33,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeThermaLib() {
         ThermaLib therm = ThermaLib.instance(this);
-        RxRayTempCallbacks callbacksHC = new RxRayTempCallbacks(this);
+        RxRayTempCallbacks callbacksHC = new RxRayTempCallbacks(this, therm);
         therm.registerCallbacks(callbacksHC, TAG);
-        therm.startScanForDevices(ThermaLib.Transport.BLUETOOTH_LE);
-
-        // handling connection and data reading
-        callbacksHC.setThermInst(therm);
+        // Ref: uk.co.etiltd.thermalib.ac -> Line 142
+        therm.startScanForDevices(ThermaLib.Transport.BLUETOOTH_LE, 5); // TransportType, TimeoutInSeconds
     }
 
     // Function to check and request permission.

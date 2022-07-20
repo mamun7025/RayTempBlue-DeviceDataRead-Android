@@ -6,6 +6,8 @@ import android.widget.Toast;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
 import uk.co.etiltd.thermalib.Device;
 import uk.co.etiltd.thermalib.Sensor;
 import uk.co.etiltd.thermalib.ThermaLib;
@@ -14,16 +16,13 @@ import uk.co.etiltd.thermalib.ThermaLibException;
 
 public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
 
-    ThermaLib therm = null;
+    private final Context mContext;
+    private final ThermaLib therm;
 
-    private Context mContext;
-    public RxRayTempCallbacks(Context context) {
-        mContext = context;
-        System.out.println("@context calling********************************************************");
-    }
-
-    public void setThermInst( ThermaLib therm){
+    public RxRayTempCallbacks(Context context, ThermaLib therm) {
+        this.mContext = context;
         this.therm = therm;
+        System.out.println("@context calling********************************************************");
     }
 
     @Override
@@ -104,7 +103,7 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
             String unitString = sensor.getDisplayUnit().getUnitString();
             // show
             Date date = new Date(timestamp);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy MM dd HH:mm:ss");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy MM dd HH:mm:ss", Locale.getDefault());
             String toastString = "Device Data: "+ sensor.getReading() + " " + unitString + " " + unitDesc + ", " + sdf.format(date);
             System.out.println(toastString);
             Toast.makeText(mContext, toastString, Toast.LENGTH_LONG).show();
