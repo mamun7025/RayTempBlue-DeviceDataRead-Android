@@ -85,11 +85,11 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
     }
 
     public void onMessage(Device device, String msg, long timestamp) {
-        System.out.println("@onMessage*******************************************" + msg);
+        System.out.println("@onMessage********************************************************" + msg);
     }
 
     public void onDeviceReady(Device device, long timestamp) {
-        System.out.println("@onDeviceReady*******************************************.");
+        System.out.println("@onDeviceReady*********************************************************");
         Toast.makeText(mContext, "Device: " + device.getDeviceName() + ", ready to send data ", Toast.LENGTH_LONG).show();
     }
 
@@ -112,31 +112,31 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
     }
 
     public void onRssiUpdated(Device device, int rssi) {
-        System.out.println("@onRssiUpdated*******************************************.");
+        System.out.println("@onRssiUpdated**********************************************************");
     }
 
     public void onUnexpectedDeviceDisconnection(Device device, long timestamp) {
-        System.out.println("@.... xx found....");
+        System.out.println("****************************************@onUnexpectedDeviceDisconnection");
     }
 
     public void onUnexpectedDeviceDisconnection(Device device, String exceptionMessage, ThermaLib.ClientCallbacks.DeviceDisconnectionReason reason, long timestamp) {
-        System.out.println("@.... xx found....");
+        System.out.println("***************************************@onUnexpectedDeviceDisconnection");
     }
 
     public void onRequestServiceComplete(int transport, boolean succeeded, String errorMessage, String appKey) {
-        System.out.println("@.... xx found..*******************************************..");
+        System.out.println("***********************************************@onRequestServiceComplete");
     }
 
     public void onDeviceAccessRequestComplete(Device device, boolean succeeded, String errorMessage) {
-        System.out.println("@.... xx found...*******************************************.");
+        System.out.println("******************************************@onDeviceAccessRequestComplete");
     }
 
     public void onDeviceRevokeRequestComplete(Device device, boolean succeeded, String errorMessage) {
-        System.out.println("@.... xx found..*******************************************..");
+        System.out.println("******************************************@onDeviceRevokeRequestComplete");
     }
 
     public void onRemoteSettingsReceived(Device device) {
-        System.out.println("@.... xx found..*******************************************..");
+        System.out.println("***********************************************@onRemoteSettingsReceived");
     }
 
 
