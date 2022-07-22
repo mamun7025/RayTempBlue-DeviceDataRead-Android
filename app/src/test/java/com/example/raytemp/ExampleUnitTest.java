@@ -1,4 +1,4 @@
-package com.example.appsup4vx;
+package com.example.raytemp;
 
 import org.junit.Test;
 
