@@ -4,53 +4,73 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-
+import android.os.Handler;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
-import com.example.raytemp.databinding.ActivityMainBinding;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.navigation.NavigationView;
-
 import java.util.ArrayList;
 import java.util.List;
-
+import uk.co.etiltd.thermalib.Device;
 import uk.co.etiltd.thermalib.ThermaLib;
+import uk.co.etiltd.thermalib.ThermaLibException;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-
     public static int REQUEST_PERMISSIONS = 1001;
 
-    private AppBarConfiguration mAppBarConfiguration;
-    private ActivityMainBinding binding;
+    ThermaLib therm;
+    List<Device> deviceList;
+
+    public static boolean scanCompleteFlag = false;
+    final Handler mHandler = new Handler();
+    final int delayInMillis = 5000;     // 1000 milliseconds == 1 second
+
+    ListView listView;
+    List<String> listItem;
+    ArrayAdapter<String> adapter;
+
+    private static final String FILE_NAME = "temp_blue_data.txt";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        setContentView(R.layout.activity_main);
+        listView = findViewById(R.id.MyListView);
 
-        setSupportActionBar(binding.appBarMain.toolbar);
-
-        DrawerLayout drawer = binding.drawerLayout;
-        NavigationView navigationView = binding.navView;
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_device)
-                .setOpenableLayout(drawer)
-                .build();
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
-        NavigationUI.setupWithNavController(navigationView, navController);
+        listItem = new ArrayList<>();
+        listItem.add("Sample Device-1");
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, listItem);
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                String clickDeviceIdentifier = adapter.getItem(position);
+                Toast.makeText(getApplicationContext(),clickDeviceIdentifier,Toast.LENGTH_SHORT).show();
+                // connect to click device
+                for (Device device: deviceList){
+                    String deviceName = device.getDeviceName();
+                    String identifier = device.getIdentifier();
+                    String deviceIdentifier = deviceName + "-" + identifier;
+                    if(deviceIdentifier.equals(clickDeviceIdentifier)){
+                        try {
+                            device.requestConnection();
+                        } catch (ThermaLibException e) {
+                            e.printStackTrace();
+                        }
+                        Toast.makeText(MainActivity.this, "Connection request sent to device: " + deviceIdentifier, Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+        });
 
         // Handle run time permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -58,10 +78,54 @@ public class MainActivity extends AppCompatActivity {
         } else {
             initializeThermaLib();
         }
+
+        // new code
+        Button mButtonScan = findViewById(R.id.buttonScan);
+        mButtonScan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                therm.startScanForDevices(ThermaLib.Transport.BLUETOOTH_LE, 5); // TransportType, TimeoutInSeconds
+                // reset
+                scanCompleteFlag = false;
+                // call after scan complete
+                startTimerToChekScanComplete();
+            }
+        });
     }
 
+    private void startTimerToChekScanComplete(){
+
+        Runnable runnableInst = new Runnable() {
+            @Override
+            public void run() {
+                if(scanCompleteFlag){
+                    System.out.println("@Scan Complete**********************************************");
+                    deviceList = therm.getDeviceList();
+                    System.out.println(deviceList);
+                    for (Device device: deviceList){
+                        String deviceName = device.getDeviceName();
+                        String identifier = device.getIdentifier();
+                        String deviceIdentifier = deviceName + "-" + identifier;
+                        listItem.add(deviceIdentifier);
+                        Toast.makeText(MainActivity.this, "Found device: " + device.getDeviceName() + " Serial: " + device.getSerialNumber(), Toast.LENGTH_LONG).show();
+                    }
+                    adapter.notifyDataSetChanged();
+//                    mHandler.postDelayed(this, delayInMillis);
+//                    mHandler.removeCallbacks(runnableInst);
+                } else {
+                    mHandler.postDelayed(this, delayInMillis); // Optional, to repeat the task.
+                }
+            }
+        };
+        // start
+        mHandler.postDelayed(runnableInst, delayInMillis);
+        // mHandler.removeCallbacks(runnableInst);
+    }
+
+
     private void initializeThermaLib() {
-        ThermaLib therm = ThermaLib.instance(this);
+        // ThermaLib therm = ThermaLib.instance(this);
+        therm = ThermaLib.instance(this);
         RxRayTempCallbacks callbacksHC = new RxRayTempCallbacks(this, therm);
         therm.registerCallbacks(callbacksHC, TAG);
         // Ref: uk.co.etiltd.thermalib.ac -> Line 142
@@ -142,10 +206,5 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-                || super.onSupportNavigateUp();
-    }
+
 }

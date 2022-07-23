@@ -3,21 +3,29 @@ package com.example.raytemp;
 
 import android.content.Context;
 import android.widget.Toast;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 import uk.co.etiltd.thermalib.Device;
 import uk.co.etiltd.thermalib.Sensor;
 import uk.co.etiltd.thermalib.ThermaLib;
-import uk.co.etiltd.thermalib.ThermaLibException;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 
 public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
 
     private final Context mContext;
     private final ThermaLib therm;
+    private static final String FILE_NAME = "temp_blue_data.txt";
+    private static String fileFullPath = "";
+
 
     public RxRayTempCallbacks(Context context, ThermaLib therm) {
         this.mContext = context;
@@ -70,7 +78,7 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
         System.out.println(scanResult);
         System.out.println(numDevices);
         System.out.println(errorMsg);
-        System.out.println("-------------------------");
+        /*System.out.println("-------------------------");
         List<Device> deviceList = therm.getDeviceList();
         System.out.println(deviceList);
         for (Device device: deviceList){
@@ -80,8 +88,9 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
             } catch (ThermaLibException e) {
                 e.printStackTrace();
             }
-        }
+        }*/
         System.out.println("@onScanComplete2********************************************************E");
+        MainActivity.scanCompleteFlag = true;
     }
 
     public void onMessage(Device device, String msg, long timestamp) {
@@ -107,6 +116,11 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
             String toastString = "Device Data: "+ sensor.getReading() + " " + unitString + " " + unitDesc + ", " + sdf.format(date);
             System.out.println(toastString);
             Toast.makeText(mContext, toastString, Toast.LENGTH_LONG).show();
+            String readingData = sensor.getReading() + " " + unitString + " " + unitDesc;
+
+            // save in text file for sharing
+            saveDataInText(readingData);
+            loadDataFromText();
         }
         System.out.println("@onDeviceNotificationReceived******************************************E");
     }
@@ -138,6 +152,64 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
     public void onRemoteSettingsReceived(Device device) {
         System.out.println("***********************************************@onRemoteSettingsReceived");
     }
+
+
+    // Custom methods
+    public void saveDataInText(String textData) {
+        FileOutputStream fos = null;
+        try {
+//            fos = mContext.openFileOutput(FILE_NAME, MODE_PRIVATE);
+//            fos = mContext.openFileOutput(FILE_NAME, MODE_APPEND);
+            File tempBlueDir= mContext.getDir("TempBlue", Context.MODE_APPEND);
+            if (!tempBlueDir.exists()){
+                tempBlueDir.mkdirs();
+            }
+            File fileWithinMyDir = new File(tempBlueDir, FILE_NAME);
+            fileFullPath = fileWithinMyDir.getAbsolutePath();
+            System.out.println("@fileFullPath------> " +fileFullPath);
+            fos = new FileOutputStream(fileWithinMyDir);    //Use the stream as usual to write into the file.
+            fos.write(textData.getBytes());
+            System.out.println("Saved to " + fileFullPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void loadDataFromText() {
+        FileInputStream fis = null;
+        try {
+            // fis = mContext.openFileInput(FILE_NAME);
+            File fileBlue = new File(fileFullPath);
+            fis = new FileInputStream(fileBlue);
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader br = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String text;
+            while ((text = br.readLine()) != null) {
+                sb.append(text).append("\n");
+            }
+            System.out.println("Load Data: " + sb);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
 
 
 }
