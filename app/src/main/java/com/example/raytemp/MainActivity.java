@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.util.ArrayList;
 import java.util.List;
+
 import uk.co.etiltd.thermalib.Device;
 import uk.co.etiltd.thermalib.ThermaLib;
 import uk.co.etiltd.thermalib.ThermaLibException;
@@ -38,13 +39,15 @@ public class MainActivity extends AppCompatActivity {
     List<String> listItem;
     ArrayAdapter<String> adapter;
 
-    private static final String FILE_NAME = "temp_blue_data.txt";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         listView = findViewById(R.id.MyListView);
+
+        // save sample test data
+        // sendDataByHttpGet_sample();
 
         listItem = new ArrayList<>();
         listItem.add("Sample Device-1");
@@ -56,17 +59,19 @@ public class MainActivity extends AppCompatActivity {
                 String clickDeviceIdentifier = adapter.getItem(position);
                 Toast.makeText(getApplicationContext(),clickDeviceIdentifier,Toast.LENGTH_SHORT).show();
                 // connect to click device
-                for (Device device: deviceList){
-                    String deviceName = device.getDeviceName();
-                    String identifier = device.getIdentifier();
-                    String deviceIdentifier = deviceName + "-" + identifier;
-                    if(deviceIdentifier.equals(clickDeviceIdentifier)){
-                        try {
-                            device.requestConnection();
-                        } catch (ThermaLibException e) {
-                            e.printStackTrace();
+                if(deviceList != null){
+                    for (Device device: deviceList){
+                        String deviceName = device.getDeviceName();
+                        String identifier = device.getIdentifier();
+                        String deviceIdentifier = deviceName + "-" + identifier;
+                        if(deviceIdentifier.equals(clickDeviceIdentifier)){
+                            try {
+                                device.requestConnection();
+                            } catch (ThermaLibException e) {
+                                e.printStackTrace();
+                            }
+                            Toast.makeText(MainActivity.this, "Connection request sent to device: " + deviceIdentifier, Toast.LENGTH_LONG).show();
                         }
-                        Toast.makeText(MainActivity.this, "Connection request sent to device: " + deviceIdentifier, Toast.LENGTH_LONG).show();
                     }
                 }
             }
@@ -206,5 +211,35 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    /*public void sendDataByHttpGet_sample() {
+        Thread callHttpThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Calling HTTP ---------------------------------------------Start");
+                HttpURLConnection connection = null;
+                try {
+                    URL url = new URL("http://localhost:8080/app?dd=123"); // dd = device data
+                    connection = (HttpURLConnection) url.openConnection();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        sb.append(line).append('\n');
+                    }
+                    String body = sb.toString();
+                    System.out.println(body);
+                    Log.d("HTTP-GET", body);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    assert connection != null;
+                    connection.disconnect();
+                }
+                System.out.println("Calling HTTP--------------------------------------------End");
+            }
+        });
+        callHttpThread.start();
+    }*/
 
 }

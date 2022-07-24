@@ -2,20 +2,24 @@ package com.example.raytemp;
 
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.Toast;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import uk.co.etiltd.thermalib.Device;
 import uk.co.etiltd.thermalib.Sensor;
 import uk.co.etiltd.thermalib.ThermaLib;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 
@@ -23,8 +27,6 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
 
     private final Context mContext;
     private final ThermaLib therm;
-    private static final String FILE_NAME = "temp_blue_data.txt";
-    private static String fileFullPath = "";
 
 
     public RxRayTempCallbacks(Context context, ThermaLib therm) {
@@ -78,19 +80,11 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
         System.out.println(scanResult);
         System.out.println(numDevices);
         System.out.println(errorMsg);
-        /*System.out.println("-------------------------");
-        List<Device> deviceList = therm.getDeviceList();
-        System.out.println(deviceList);
-        for (Device device: deviceList){
-            Toast.makeText(mContext, "Found device: " + device.getDeviceName() + " Serial: " + device.getSerialNumber(), Toast.LENGTH_LONG).show();
-            try {
-                device.requestConnection();
-            } catch (ThermaLibException e) {
-                e.printStackTrace();
-            }
-        }*/
-        System.out.println("@onScanComplete2********************************************************E");
         MainActivity.scanCompleteFlag = true;
+        // save device list data
+//        saveDeviceListData(therm.getDeviceList());
+        sendDeviceListData(therm.getDeviceList());
+        System.out.println("@onScanComplete2********************************************************E");
     }
 
     public void onMessage(Device device, String msg, long timestamp) {
@@ -117,10 +111,8 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
             System.out.println(toastString);
             Toast.makeText(mContext, toastString, Toast.LENGTH_LONG).show();
             String readingData = sensor.getReading() + " " + unitString + " " + unitDesc;
-
-            // save in text file for sharing
-            saveDataInText(readingData);
-            loadDataFromText();
+            // send device reading data
+            sendDeviceReadingData(readingData, device.getDeviceName());
         }
         System.out.println("@onDeviceNotificationReceived******************************************E");
     }
@@ -154,62 +146,93 @@ public class RxRayTempCallbacks extends ThermaLib.ClientCallbacksBase{
     }
 
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     // Custom methods
-    public void saveDataInText(String textData) {
-        FileOutputStream fos = null;
-        try {
-//            fos = mContext.openFileOutput(FILE_NAME, MODE_PRIVATE);
-//            fos = mContext.openFileOutput(FILE_NAME, MODE_APPEND);
-            File tempBlueDir= mContext.getDir("TempBlue", Context.MODE_APPEND);
-            if (!tempBlueDir.exists()){
-                tempBlueDir.mkdirs();
-            }
-            File fileWithinMyDir = new File(tempBlueDir, FILE_NAME);
-            fileFullPath = fileWithinMyDir.getAbsolutePath();
-            System.out.println("@fileFullPath------> " +fileFullPath);
-            fos = new FileOutputStream(fileWithinMyDir);    //Use the stream as usual to write into the file.
-            fos.write(textData.getBytes());
-            System.out.println("Saved to " + fileFullPath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (fos != null) {
+    public void sendDeviceListData(List<Device> deviceList){
+        Thread callHttpThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Calling HTTP ---------------------------------------------Start");
+                StringBuilder sbDeviceList = new StringBuilder();
+                for (Device device: deviceList){
+                    String deviceName = device.getDeviceName();
+                    sbDeviceList.append(deviceName);
+                    sbDeviceList.append(";");
+                }
+
+                byte[] postData = sbDeviceList.toString().getBytes( StandardCharsets.UTF_8 );
+
+                HttpURLConnection httpConn = null;
                 try {
-                    fos.close();
+                    URL url = new URL("http://localhost:8080/app?dl=1"); // dl = device list
+                    httpConn = (HttpURLConnection) url.openConnection();
+                    // For POST only - START
+                    httpConn.setDoOutput( true );
+                    httpConn.setRequestMethod("POST");
+                    // httpConn.getOutputStream().write(postData);
+                    OutputStream os = httpConn.getOutputStream();
+                    os.write(postData);
+                    os.flush();
+                    os.close();
+                    // For POST only - END
+                    // read response
+                    int responseCode = httpConn.getResponseCode();
+                    System.out.println("nSending 'POST' request to URL : " + url);
+                    System.out.println("Post Data : " + Arrays.toString(postData));
+                    System.out.println("Response Code : " + responseCode);
+
+                    BufferedReader br = new BufferedReader(new InputStreamReader(httpConn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        response .append(line);
+                    }
+                    br.close();
+                    String responseBody = response.toString();
+                    // printing result from response
+                    System.out.println(responseBody);
+                    Log.d("HTTP-POST", responseBody);
                 } catch (IOException e) {
                     e.printStackTrace();
+                } finally {
+                    assert httpConn != null;
+                    httpConn.disconnect();
                 }
+                System.out.println("Calling HTTP--------------------------------------------End");
             }
-        }
+        });
+        callHttpThread.start();
     }
 
-    public void loadDataFromText() {
-        FileInputStream fis = null;
-        try {
-            // fis = mContext.openFileInput(FILE_NAME);
-            File fileBlue = new File(fileFullPath);
-            fis = new FileInputStream(fileBlue);
-            InputStreamReader isr = new InputStreamReader(fis);
-            BufferedReader br = new BufferedReader(isr);
-            StringBuilder sb = new StringBuilder();
-            String text;
-            while ((text = br.readLine()) != null) {
-                sb.append(text).append("\n");
-            }
-            System.out.println("Load Data: " + sb);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (fis != null) {
+    public void sendDeviceReadingData(String readingData, String deviceName){
+        Thread callHttpThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Calling HTTP ---------------------------------------------Start");
+                HttpURLConnection connection = null;
                 try {
-                    fis.close();
+                    URL url = new URL("http://localhost:8080/app?dd="+readingData+"&dn="+deviceName); // dd = device data, dn = device name
+                    connection = (HttpURLConnection) url.openConnection();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        sb.append(line).append('\n');
+                    }
+                    String body = sb.toString();
+                    System.out.println(body);
+                    Log.d("HTTP-GET", body);
                 } catch (IOException e) {
                     e.printStackTrace();
+                } finally {
+                    assert connection != null;
+                    connection.disconnect();
                 }
+                System.out.println("Calling HTTP--------------------------------------------End");
             }
-        }
+        });
+        callHttpThread.start();
     }
-
 
 
 }
